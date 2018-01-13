@@ -24,6 +24,7 @@ unquote --> `~`.
 quote --> [39]. % single quote
 with_meta --> `^`.
 deref --> `@`.
+colon --> `:`.
 
 
 no_backslash_or_quote([H|T]) --> [H], {H =\= 34 /* double quote */, H =\= 92 /* backslash */}, !, no_backslash_or_quote(T).
@@ -32,7 +33,7 @@ no_backslash_or_quote([]) --> !.
 string1(Res, Acc) --> no_backslash_or_quote(T), [92, 34] /* escaped doublequote */, !, string1(Res, [[92, 34], T|Acc]).
 string1(Res, Acc) --> no_backslash_or_quote(T), [92, C] /* escaped not-doublequote */, !, string1(Res, [[92, C], T|Acc]).
 string1(Res, Acc) --> no_backslash_or_quote(T), [34] /* doublequote, end of string */, !, {reverse([T|Acc], Strings), append(Strings, Res)}.
-string1(_, _) --> { throw(parse_error(`expected '"', got EOF`))}.
+string1(_, _) --> { throw(error(`expected '"', got EOF`))}.
 string(X) --> [34] /* double quote */,  string1(X, []).
 
 ignore --> [_], !, ignore.
@@ -55,6 +56,7 @@ tokenize([unquote|T]) --> unquote, !, tokenize(T).
 tokenize([quote|T]) --> quote, !, tokenize(T).
 tokenize([with_meta|T]) --> with_meta, !, tokenize(T).
 tokenize([deref|T]) --> deref, !, tokenize(T).
+tokenize([colon|T]) --> colon, !, tokenize(T).
 tokenize([string(S)|T]) --> string(S), !, tokenize(T).
 tokenize([identifier_or_num(X)|T]) --> nonspecial_characters(X), !, tokenize(T).
 tokenize(L) --> comment, !, tokenize(L).
@@ -81,9 +83,12 @@ form(X) --> mal_atom(X).
 char_is_digit(C) :-
     char_type(C, digit).
 
-int(N) --> maplist(char_is_digit, X), number_codes(N, X).
+int(X, N) :- maplist(char_is_digit, X), number_codes(N, X).
+% unary minus
+int([45, A|X], N) :- maplist(char_is_digit, [A|X]), number_codes(NPos, [A|X]), N is -NPos.
 
-mal_atom(int(X)) --> [identifer_or_num(X)], {int(X)}, !.
+mal_atom(keyword(X)) --> [colon], !, [identifier_or_num(X)], !.
+mal_atom(int(N)) --> [identifier_or_num(X)], {int(X,N)}, !.
 mal_atom(bool(true)) --> [identifier_or_num(`true`)], !.
 mal_atom(bool(false)) --> [identifier_or_num(`false`)], !.
 mal_atom(nil) --> [identifier_or_num(`nil`)], !.
@@ -94,15 +99,15 @@ mal_atom(symbol(X)) --> [identifier_or_num(X)].
 
 list([H|T]) --> form(H), !, list(T).
 list([]) --> [rpar], !.
-list(_) --> {throw(parse_error(`expected ')', got EOF`))}.
+list(_) --> {throw(error(`expected ')', got EOF`))}.
 
 vector([H|T]) --> form(H), !, vector(T).
 vector([]) --> [rbracket], !.
-vector(_) --> {throw(parse_error(`expected ']', got EOF`))}.
+vector(_) --> {throw(error(`expected ']', got EOF`))}.
 
 hashmap([H|T]) --> form(H), !, hashmap(T). % FIXME: literal should be two elements per entry
 hashmap([]) --> [rbrace], !.
-hashmap(_) --> {throw(parse_error(`expected '}', got EOF`))}.
+hashmap(_) --> {throw(error(`expected '}', got EOF`))}.
 
 parse([], nil) :- !. % for comments
 parse(Tokens, AST) :-

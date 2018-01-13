@@ -10,6 +10,8 @@ pr_str(int(X), R) :-
 pr_str(symbol(X), X).
 pr_str(string(X), Y) :-
     append([`"`, X, `"`], Y).
+pr_str(keyword(X), Y) :-
+    append([`:`, X], Y).
 pr_str(bool(true), `true`).
 pr_str(bool(false), `false`).
 pr_str(nil, `nil`).

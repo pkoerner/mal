@@ -22,6 +22,6 @@ main :-
            (Line == end_of_file
              -> halt % handle CTRL-D: be done
               ; rep(Line, Result), write_term(Result,[nl(true),character_escapes(false)]), !)),
-          parse_error(Reason),
+          error(Reason),
           format('~s~n', [Reason])), !,
     main.
