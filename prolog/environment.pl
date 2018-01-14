@@ -1,13 +1,35 @@
-:- module(environment, [empty_env/1, repl_env/1, lookup/3, store/4]).
+:- module(environment, [empty_env/1, repl_env/1,
+                        lookup/3, find/4, store/4,
+                        store_deep/4,
+                        push_scope/2, pop_scope/2]).
 
 :- use_module(library(assoc)).
 
-empty_env(X) :-
+pop_scope(env_outer(_, OldEnv), OldEnv).
+push_scope(OldEnv, env_outer(EmptyAssoc, OldEnv)) :-
+    empty_assoc(EmptyAssoc).
+empty_env(env_outer(X, nil)) :-
     empty_assoc(X).
-store(Env, K, V, NewEnv) :-
+/* named set in the guide */
+store(env_outer(Env, Outer), K, V, env_outer(NewEnv, Outer)) :-
     put_assoc(K, Env, V, NewEnv).
-lookup(Env, K, V) :-
+store_deep(env_outer(Env, nil), K, V, env_outer(REnv, nil)) :- !,
+    store(env_outer(Env, nil), K, V, env_outer(REnv, nil)).
+store_deep(env_outer(Env, Outer), K, V, env_outer(Env, Router)) :-
+    store_deep(Outer, K, V, Router).
+/* named get in the guide */
+lookup(env_outer(Env, _), K, V) :-
     get_assoc(K, Env, V).
+
+find(env_outer(Env, Outer), K, env_outer(Env, Outer), V) :-
+    lookup(env_outer(Env, Outer), K, V), !.
+find(env_outer(_, Outer), K, REnv, V) :-
+    find(Outer, K, REnv, V).
+find(nil, _, _, _) :-
+    throw(error(`not found`)).
+
+
+
 
 repl_env(X) :-
     empty_env(Empty),
