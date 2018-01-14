@@ -36,3 +36,5 @@ pr_str(syntax_quote, `quasiquote`).
 pr_str(splice_unquote, `splice-unquote`).
 pr_str(deref, `deref`).
 pr_str(with_meta, `with-meta`).
+pr_str(X, _) :-
+    print(printing_failed(X)),nl,fail.
