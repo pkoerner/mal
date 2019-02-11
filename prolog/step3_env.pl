@@ -1,4 +1,4 @@
-:- module(step2_eval, [main/0]).
+:- module(step3_env, [main/0]).
 
 :- use_module(reader, [read_str/2]).
 :- use_module(printer, [pr_str/2]).
